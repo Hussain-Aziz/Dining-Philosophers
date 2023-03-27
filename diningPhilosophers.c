@@ -1,3 +1,5 @@
+// run on linux using this command 
+// gcc -pthread -o dp dp.c
 #include <stdio.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,22 +10,36 @@
 // define some constants
 #define PHILOSOPHER_NUM 5
 #define MAX_MEALS 10 
-#define RUN_TIME 5
+#define RUN_TIME 60
 #define MAX_THINK_EAT 4.0
 
-// define the possible states of the philosopher
-typedef enum {THINKING, EATING, HUNGRY} PhilosopherState;
-
 // some forward definitions
-void* Philosopher(void* number);
-double Random(double min, double max);
+void* philosopher(void* number);
+double get_random(double min, double max);
+void pickup_forks(int philosopher_number);
+void return_forks(int philosopher_number);
+int get_left_chopstick_num(int philosopher_number);
+int get_right_chopstick_num(int philosopher_number);
 
-// declare some global variables
-PhilosopherState philosopherState[PHILOSOPHER_NUM];
-int mealsEaten[PHILOSOPHER_NUM];
+// define global variable
+int meals_eaten[PHILOSOPHER_NUM];
+int chopsticks[PHILOSOPHER_NUM];
+pthread_cond_t conditions[PHILOSOPHER_NUM];
+pthread_mutex_t mutexs[PHILOSOPHER_NUM];
 
 int main() 
 {
+   // init the arrays
+   for(int i = 0; i < PHILOSOPHER_NUM; i++)
+   {
+      // make chopsticks available
+      chopsticks[i] = 1;
+
+      // initalize the condition variables and mutexes
+      pthread_cond_init(&conditions[i], NULL);
+      pthread_mutex_init(&mutexs[i], NULL);
+   }
+
    // an array to hold the thread objects
    pthread_t philosopherThreads[PHILOSOPHER_NUM];
 
@@ -34,7 +50,7 @@ int main()
       int *arg = malloc(sizeof(int)); *arg = i;
 
       // create the thread
-      pthread_create(&philosopherThreads[i], 0, Philosopher, arg);
+      pthread_create(&philosopherThreads[i], 0, philosopher, arg);
    }
 
    // let threads run
@@ -49,12 +65,13 @@ int main()
    // compute the data
    int min = __INT_MAX__, max = 0, totalMeals = 0;
 
-   for(int i = 0; i <= PHILOSOPHER_NUM; i++)
+   for(int i = 0; i < PHILOSOPHER_NUM; i++)
    {
-      totalMeals += mealsEaten[i];
+      printf("%i: %i\n", i, meals_eaten[i]);
+      totalMeals += meals_eaten[i];
 
-      if(mealsEaten[i] < min) min = mealsEaten[i];
-      if(mealsEaten[i] > max) max = mealsEaten[i];
+      if(meals_eaten[i] < min) min = meals_eaten[i];
+      if(meals_eaten[i] > max) max = meals_eaten[i];
    }
 
    // print the data
@@ -63,36 +80,87 @@ int main()
    return 0;
 }
 
-void* Philosopher(void* num)
+void* philosopher(void* philosopher_number_variable)
 {
    // cast the parameter to the int we provided earlier
-   int number = *((int*)num);
+   int philosopher_number = *((int*)philosopher_number_variable);
 
    // initalize the place in the array to 0
-   mealsEaten[number] = 0;
+   meals_eaten[philosopher_number] = 0;
 
    // make sure only 10 meals are eaten
-   while(mealsEaten[number] < MAX_MEALS)
+   while(meals_eaten[philosopher_number] < MAX_MEALS)
    {
       // start thinking
-      philosopherState[number] = THINKING;
-      sleep(Random(1, MAX_THINK_EAT));
+      sleep(get_random(1, MAX_THINK_EAT));
 
-      philosopherState[number] = HUNGRY;
-      //TODO: check if chopsticks available
+      // hungry
+      pickup_forks(philosopher_number);
 
       // start eating
-      philosopherState[number] = EATING;
-      sleep(Random(1, MAX_THINK_EAT));
-      // assumtion: eating only counts if they completely finish eating
-      mealsEaten[number] += 1;
+      sleep(get_random(1, MAX_THINK_EAT));
+
+      // finish eating
+      meals_eaten[philosopher_number] += 1;
+      return_forks(philosopher_number);
    }
 
    // since we are done, exit
    pthread_exit(NULL);
 }
 
-double Random(double min, double max)
+void pickup_forks(int philosopher_number)
+{
+   int left_chopstick = get_left_chopstick_num(philosopher_number);
+   int right_chopstick = get_right_chopstick_num(philosopher_number);
+
+   // lock left chopstick
+   pthread_mutex_lock(&mutexs[left_chopstick]);
+
+   // conditionally release left chopstick until it is not available
+   while (chopsticks[left_chopstick] != 1)
+      pthread_cond_wait(&conditions[left_chopstick] , &mutexs[left_chopstick]);
+
+   // lock right chopstick
+   pthread_mutex_lock(&mutexs[right_chopstick]);
+
+   // conditionally release right chopstick until it is not available
+   while (chopsticks[right_chopstick] != 1)
+      pthread_cond_wait(&conditions[right_chopstick] , &mutexs[right_chopstick]);
+
+   
+   // now both chopsticks are locked and available, make them unavailable
+   chopsticks[left_chopstick] = 0;
+   chopsticks[right_chopstick] = 0;
+}
+
+void return_forks(int philosopher_number)
+{
+   int left_chopstick = get_left_chopstick_num(philosopher_number);
+   int right_chopstick = get_right_chopstick_num(philosopher_number);
+
+   chopsticks[left_chopstick] = 1;
+   pthread_mutex_unlock(&mutexs[left_chopstick]);
+   chopsticks[right_chopstick] = 1;
+   pthread_mutex_unlock(&mutexs[right_chopstick]);
+}
+
+int get_left_chopstick_num(int philosopher_number)
+{
+   return philosopher_number;
+}
+
+int get_right_chopstick_num(int philosopher_number)
+{
+   int chopstick_number = philosopher_number + 1;
+   if (chopstick_number >= PHILOSOPHER_NUM)
+   {
+      chopstick_number = 0;
+   }
+   return chopstick_number;
+}
+
+double get_random(double min, double max)
 {
    return min + ((double) rand() / RAND_MAX) * (max - min);
 }
