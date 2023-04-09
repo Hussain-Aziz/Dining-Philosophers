@@ -9,10 +9,10 @@
 
 // define some constants
 #define MAX_MEALS 10 
-#define RUN_TIME 60
 #define MAX_THINK_EAT 4.0
 
 // some forward definitions
+void parse_args(int* runtime, int argc, char* argv[]);
 void* philosopher_run(void* philosopher_number_variable);
 double get_random(double min, double max);
 void pickup_chopsticks(int philosopher_number);
@@ -34,6 +34,9 @@ int fail = 0;
 // entry point of code
 int main(int argc, char *argv[]) 
 {
+   int runtime;
+   parse_args(&runtime, argc, argv);
+
    // allocate memory for arrays
    meals_eaten = (int*)calloc(number_of_philosophers, sizeof(int));
    chopsticks = (int*)calloc(number_of_philosophers, sizeof(int));
@@ -62,7 +65,7 @@ int main(int argc, char *argv[])
    }
 
    // let threads run
-   sleep(RUN_TIME);
+   sleep(runtime);
 
    // cancel threads since our total runtime is over
    for(int i = 0; i < number_of_philosophers; i++)
@@ -96,6 +99,26 @@ int main(int argc, char *argv[])
    free(chopsticks);
 
    return 0;
+}
+
+// function called at start to parse the command line arguments
+// sets the runtime variable based on the given arguments
+void parse_args(int* runtime, int argc, char* argv[])
+{
+   // verify correct number of arguments
+   if (argc < 2)
+   {
+      printf("Too few arguments. Expecting 1 argument: runtime in seconds\n");
+      exit(-1);
+   }   
+   else if (argc > 2)
+   {
+      printf("Too many arguments. Expecting 1 argument: runtime in seconds\n");
+      exit(-1);
+   }
+
+   // set arguments
+   *runtime = atoi(argv[1]);
 }
 
 // function that is run on the threads
