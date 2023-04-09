@@ -1,5 +1,5 @@
 // compile by running the make file
-// or you can do: gcc -pthread -o dp diningPhilosophers.c
+// or you can do: gcc -pthread -o dp dining_philosophers.c
 #include <stdio.h>
 #include <stdio.h>
 #include <stdlib.h>
