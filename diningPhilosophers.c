@@ -20,6 +20,7 @@ void wait_and_pickup_chopsticks(int philosopher_number);
 void return_chopsticks(int philosopher_number);
 int get_left_chopstick_num(int philosopher_number);
 int get_right_chopstick_num(int philosopher_number);
+void compute_data();
 
 // define global variable
 int *meals_eaten; // array to keep track of meals eaten
@@ -74,24 +75,7 @@ int main(int argc, char *argv[])
    }
 
    // print out the min, max, and average meals eaten
-   int min = __INT_MAX__, max = 0, totalMeals = 0;
-
-   for(int i = 0; i < number_of_philosophers; i++)
-   {
-      printf("%i: %i\n", i, meals_eaten[i]);
-      totalMeals += meals_eaten[i];
-
-      if(meals_eaten[i] < min) min = meals_eaten[i];
-      if(meals_eaten[i] > max) max = meals_eaten[i];
-   }
-
-   // print the data
-   printf("min: %i\nmax: %i\naverage: %f\n", min, max, (double)totalMeals/number_of_philosophers);
-
-   if (fail)
-   {
-      printf("FAILURE\n");
-   }
+   compute_data();
 
    // free the memory we allocated
    free(philosopherThreads);
@@ -228,4 +212,27 @@ int get_right_chopstick_num(int philosopher_number)
 double get_random(double min, double max)
 {
    return min + ((double) rand() / RAND_MAX) * (max - min);
+}
+
+// a function to compute the data
+void compute_data()
+{
+   int min = __INT_MAX__, max = 0, totalMeals = 0;
+
+   for(int i = 0; i < number_of_philosophers; i++)
+   {
+      printf("%i: %i\n", i, meals_eaten[i]);
+      totalMeals += meals_eaten[i];
+
+      if(meals_eaten[i] < min) min = meals_eaten[i];
+      if(meals_eaten[i] > max) max = meals_eaten[i];
+   }
+
+   // print the data
+   printf("min: %i\nmax: %i\naverage: %f\n", min, max, (double)totalMeals/number_of_philosophers);
+
+   if (fail)
+   {
+      printf("FAILURE\n");
+   }
 }
