@@ -8,7 +8,6 @@
 #include <time.h>
 
 // define some constants
-#define PHILOSOPHER_NUM 5
 #define MAX_MEALS 10 
 #define RUN_TIME 60
 #define MAX_THINK_EAT 4.0
@@ -23,8 +22,9 @@ int get_left_chopstick_num(int philosopher_number);
 int get_right_chopstick_num(int philosopher_number);
 
 // define global variable
-int meals_eaten[PHILOSOPHER_NUM]; // array to keep track of meals eaten
-int chopsticks[PHILOSOPHER_NUM]; // array to keep track of which chopstick is in use
+int *meals_eaten; // array to keep track of meals eaten
+int *chopsticks; // array to keep track of which chopstick is in use
+int number_of_philosophers = 5; // globally defined for now
 pthread_cond_t waiting_for_chopsticks = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t chopsticks_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -34,8 +34,14 @@ int fail = 0;
 // entry point of code
 int main(int argc, char *argv[]) 
 {
+   // allocate memory for arrays
+   meals_eaten = (int*)calloc(number_of_philosophers, sizeof(int));
+   chopsticks = (int*)calloc(number_of_philosophers, sizeof(int));
+   // an array to hold the thread objects
+   pthread_t* philosopherThreads = (pthread_t*)calloc(number_of_philosophers, sizeof(pthread_t));
+
    // set initial conditions
-   for(int i = 0; i < PHILOSOPHER_NUM; i++)
+   for(int i = 0; i < number_of_philosophers; i++)
    {
       // make chopsticks available at the start
       chopsticks[i] = 1;
@@ -44,11 +50,8 @@ int main(int argc, char *argv[])
       meals_eaten[i] = 0; 
    }
 
-   // an array to hold the thread objects
-   pthread_t philosopherThreads[PHILOSOPHER_NUM];
-
    // create the threads
-   for(int i = 0; i < PHILOSOPHER_NUM; i++)
+   for(int i = 0; i < number_of_philosophers; i++)
    {
       // use a pointer to pass the num as void* param
       int *arg = malloc(sizeof(int)); 
@@ -62,7 +65,7 @@ int main(int argc, char *argv[])
    sleep(RUN_TIME);
 
    // cancel threads since our total runtime is over
-   for(int i = 0; i < PHILOSOPHER_NUM; i++)
+   for(int i = 0; i < number_of_philosophers; i++)
    {
       pthread_cancel(philosopherThreads[i]);
    }
@@ -70,7 +73,7 @@ int main(int argc, char *argv[])
    // print out the min, max, and average meals eaten
    int min = __INT_MAX__, max = 0, totalMeals = 0;
 
-   for(int i = 0; i < PHILOSOPHER_NUM; i++)
+   for(int i = 0; i < number_of_philosophers; i++)
    {
       printf("%i: %i\n", i, meals_eaten[i]);
       totalMeals += meals_eaten[i];
@@ -80,12 +83,17 @@ int main(int argc, char *argv[])
    }
 
    // print the data
-   printf("min: %i\nmax: %i\naverage: %f\n", min, max, (double)totalMeals/PHILOSOPHER_NUM);
+   printf("min: %i\nmax: %i\naverage: %f\n", min, max, (double)totalMeals/number_of_philosophers);
 
    if (fail)
    {
       printf("FAILURE\n");
    }
+
+   // free the memory we allocated
+   free(philosopherThreads);
+   free(meals_eaten);
+   free(chopsticks);
 
    return 0;
 }
@@ -187,7 +195,7 @@ int get_left_chopstick_num(int philosopher_number)
 int get_right_chopstick_num(int philosopher_number)
 {
    int chopstick_number = philosopher_number + 1;
-   if (chopstick_number >= PHILOSOPHER_NUM)
+   if (chopstick_number >= number_of_philosophers)
    {
       chopstick_number = 0;
    }
