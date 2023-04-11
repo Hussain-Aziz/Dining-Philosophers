@@ -16,10 +16,7 @@ void parse_args(int* runtime, int argc, char* argv[]);
 void* philosopher_run(void* philosopher_number_variable);
 double get_random(double min, double max);
 void pickup_chopsticks(int philosopher_number);
-void wait_and_pickup_chopsticks(int philosopher_number);
 void return_chopsticks(int philosopher_number);
-int get_left_chopstick_num(int philosopher_number);
-int get_right_chopstick_num(int philosopher_number);
 void compute_data();
 
 // define global variable
@@ -28,9 +25,6 @@ int *chopsticks; // array to keep track of which chopstick is in use
 int number_of_philosophers = 5; // globally defined for now
 pthread_cond_t waiting_for_chopsticks = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t chopsticks_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-// to ensure the program isn't allowing eating without chopsticks
-int fail = 0;
 
 // entry point of code
 int main(int argc, char *argv[]) 
@@ -111,27 +105,24 @@ void* philosopher_run(void* philosopher_number_variable)
    // cast the parameter to the int we provided earlier
    int philosopher_number = *((int*)philosopher_number_variable);
    
+   // free the pointer to avoid memory leaks
    free(philosopher_number_variable);
 
    // make sure only 10 meals are eaten
    while(meals_eaten[philosopher_number] < MAX_MEALS)
    {
-      //printf("%i thinking\n", philosopher_number);
       // start thinking
       sleep(get_random(1, MAX_THINK_EAT));
 
-      //printf("%i hungry\n", philosopher_number);
       // hungry
-      wait_and_pickup_chopsticks(philosopher_number);
+      pickup_chopsticks(philosopher_number);
 
-      //printf("%i eating\n", philosopher_number);
       // start eating
       sleep(get_random(1, MAX_THINK_EAT));
 
       // finish eating
-      meals_eaten[philosopher_number] += 1;
-
       return_chopsticks(philosopher_number);
+      meals_eaten[philosopher_number] += 1;
    }
 
    // since we are done, exit
@@ -139,54 +130,34 @@ void* philosopher_run(void* philosopher_number_variable)
    return 0;
 }
 
-void wait_and_pickup_chopsticks(int philosopher_number)
+void pickup_chopsticks(int philosopher_number)
 {
-   int left_chopstick = get_left_chopstick_num(philosopher_number);
-   int right_chopstick = get_right_chopstick_num(philosopher_number);
+   int left_chopstick = philosopher_number;
+   int right_chopstick = (philosopher_number + 1) % number_of_philosophers;
 
    // lock mutex so no one else can change value of chopsticks
    pthread_mutex_lock(&chopsticks_mutex);
 
    // wait until both available
-   while(chopsticks[left_chopstick] != 1 || chopsticks[right_chopstick] != 1)
+   while(!(chopsticks[left_chopstick] == 1 && chopsticks[right_chopstick] == 1))
       pthread_cond_wait(&waiting_for_chopsticks, &chopsticks_mutex);
 
-   // only 1 thread can be in this function at one point in time because of the mutex
-   pickup_chopsticks(philosopher_number);
+   // now both chopsticks are locked and available, make them unavailable
+   chopsticks[left_chopstick] = 0;
+   chopsticks[right_chopstick] = 0;
 
    // done changing chopsticks, release mutex
    pthread_mutex_unlock(&chopsticks_mutex);
 }
 
-void pickup_chopsticks(int philosopher_number)
-{
-   int left_chopstick = get_left_chopstick_num(philosopher_number);
-   int right_chopstick = get_right_chopstick_num(philosopher_number);
-
-   // if reached here and chopstick unavailable, its a failure
-   if (chopsticks[left_chopstick] == 0 || chopsticks[right_chopstick] == 0)
-   {
-      fail = 1;
-   }
-
-   // now both chopsticks are locked and available, make them unavailable
-   chopsticks[left_chopstick] = 0;
-   chopsticks[right_chopstick] = 0;
-}
-
+// the function to put down the chopsticks
 void return_chopsticks(int philosopher_number)
 {
-   int left_chopstick = get_left_chopstick_num(philosopher_number);
-   int right_chopstick = get_right_chopstick_num(philosopher_number);
+   int left_chopstick = philosopher_number;
+   int right_chopstick = (philosopher_number + 1) % number_of_philosophers;
 
    // lock mutex to set the avilability of chopsticks
    pthread_mutex_lock(&chopsticks_mutex);
-
-   // if reached here and chopstick are available, its a failure
-   if (chopsticks[left_chopstick] == 1 || chopsticks[right_chopstick] == 1)
-   {
-      fail = 1;
-   }
 
    // make them available again
    chopsticks[left_chopstick] = 1;
@@ -195,21 +166,6 @@ void return_chopsticks(int philosopher_number)
    // unlock the mutex and signal other threads
    pthread_mutex_unlock(&chopsticks_mutex);
    pthread_cond_signal(&waiting_for_chopsticks);
-}
-
-int get_left_chopstick_num(int philosopher_number)
-{
-   return philosopher_number;
-}
-
-int get_right_chopstick_num(int philosopher_number)
-{
-   int chopstick_number = philosopher_number + 1;
-   if (chopstick_number >= number_of_philosophers)
-   {
-      chopstick_number = 0;
-   }
-   return chopstick_number;
 }
 
 double get_random(double min, double max)
@@ -233,9 +189,4 @@ void compute_data()
 
    // print the data
    printf("min: %i\nmax: %i\naverage: %f\n", min, max, (double)totalMeals/number_of_philosophers);
-
-   if (fail)
-   {
-      printf("FAILURE\n");
-   }
 }
