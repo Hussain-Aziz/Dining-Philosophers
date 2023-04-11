@@ -110,6 +110,8 @@ void* philosopher_run(void* philosopher_number_variable)
 {
    // cast the parameter to the int we provided earlier
    int philosopher_number = *((int*)philosopher_number_variable);
+   
+   free(philosopher_number_variable);
 
    // make sure only 10 meals are eaten
    while(meals_eaten[philosopher_number] < MAX_MEALS)
@@ -133,7 +135,6 @@ void* philosopher_run(void* philosopher_number_variable)
    }
 
    // since we are done, exit
-   free(philosopher_number_variable);
    pthread_exit(NULL);
    return 0;
 }
