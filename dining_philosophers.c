@@ -133,7 +133,9 @@ void* philosopher_run(void* philosopher_number_variable)
    }
 
    // since we are done, exit
+   free(philosopher_number_variable);
    pthread_exit(NULL);
+   return 0;
 }
 
 void wait_and_pickup_chopsticks(int philosopher_number)
