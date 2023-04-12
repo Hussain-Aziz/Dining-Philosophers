@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
    }
 
    // print out the min, max, and average meals eaten
-   compute_data();
+   compute_data(runtime);
 
    // free the memory we allocated
    free(philosopherThreads);
@@ -174,9 +174,11 @@ double get_random(double min, double max)
 }
 
 // a function to compute the data
-void compute_data()
+void compute_data(int runtime)
 {
    int min = __INT_MAX__, max = 0, totalMeals = 0;
+
+   printf("Printing data for the %i seconds session:\n", runtime);
 
    for(int i = 0; i < number_of_philosophers; i++)
    {
@@ -188,5 +190,6 @@ void compute_data()
    }
 
    // print the data
+   printf("\nThe results for the %i seconds session:\n", runtime);
    printf("min: %i\nmax: %i\naverage: %f\n\n", min, max, (double)totalMeals/number_of_philosophers);
 }
