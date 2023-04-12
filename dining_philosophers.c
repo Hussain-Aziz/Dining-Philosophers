@@ -180,7 +180,7 @@ void compute_data()
 
    for(int i = 0; i < number_of_philosophers; i++)
    {
-      printf("%i: %i\n", i, meals_eaten[i]);
+      printf("Philosopher %i has eaten %i meals\n", i, meals_eaten[i]);
       totalMeals += meals_eaten[i];
 
       if(meals_eaten[i] < min) min = meals_eaten[i];
@@ -188,5 +188,5 @@ void compute_data()
    }
 
    // print the data
-   printf("min: %i\nmax: %i\naverage: %f\n", min, max, (double)totalMeals/number_of_philosophers);
+   printf("min: %i\nmax: %i\naverage: %f\n\n", min, max, (double)totalMeals/number_of_philosophers);
 }
